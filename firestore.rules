@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Checks if the user is authenticated and email matches owner/admin
+    function isAdmin() {
+      return request.auth != null && 
+        (request.auth.token.email == 'bdallhwaylg@gmail.com' || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    // Settings collection
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Products collection
+    match /products/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Projects collection
+    match /projects/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reviews collection (moderated)
+    match /reviews/{docId} {
+      allow read: if true;
+      allow create: if true; // anyone can submit a review
+      allow update, delete: if isAdmin(); // only admin can approve or delete reviews
+    }
+
+    // Messages collection
+    match /messages/{docId} {
+      allow create: if true; // anyone can send a message
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Orders collection
+    match /orders/{docId} {
+      allow create: if true; // guests and users can place orders
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if true; // registration
+      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Activity Logs
+    match /activity_logs/{docId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
